@@ -11,7 +11,8 @@ function startTracking(userConfig = {}) {
             "avi", "mov", "mp4", "mpeg", "mpg", "wmv", "midi", "mp3", 
             "wav", "wma"
           ],
-        formSelectors: ['test-selector'],  
+        videoEvents: ['play', 'pause', 'ended', 'timeupdate'],
+        progressPercentage: [10, 25, 50, 75, 90, 100],
         debounceTime: 100,
         ...userConfig // Override with user's config
     };
@@ -103,7 +104,7 @@ function startTracking(userConfig = {}) {
                   is_outbound: isOutbound,
                 };
                 if (text.trim()) {
-                  eventDetails.link_text = text;
+                  eventDetailsforoutbound.link_text = text;
                 }
               dataLayer.push(eventDetailsforoutbound);
             }
@@ -149,89 +150,76 @@ function startTracking(userConfig = {}) {
 
         config.scrollDirection.forEach(trackScroll);
     }, config.debounceTime);
-    for (let f = 0; f < config.formSelectors.length; f++) {
-        const formSelector = config.formSelectors[f];
-        const form = document.querySelector(formSelector);
-        if (!form) {
-        console.error("Form not found");
-        continue;
-        }
-        const formMeta = {
-        id: form.id || "no-id",
-        name: form.getAttribute('name') || "no-name",
-        destination: form.action || "no-action"
-        };
 
-        let formFocused = false;
-        let formSubmitted = false;
+    const handleVideoEvents = function (event) {
+      const video = event.target;
+      if (!video.duration) return;
+    
+      const dataLayer = window[config.dataLayerName];
+      const videoData = {
+        videoProvider: 'html5',
+        videoTitle: video.title || video.getAttribute('title') || video.getAttribute('data-title') || video.getAttribute('aria-label') || "no-title",
+        videoUrl: video.src || video.currentSrc,
+        videoDuration: Math.floor(video.duration),
+        videoCurrentTime: Math.floor(video.currentTime)
+      };
+    
+      switch (event.type) {
+        case 'play':
+          // Track video start only once per video instance
+          if (video._trackedStart) return;
+          video._trackedStart = true;
+          dataLayer.push({
+            event: 'video_start',
+            ...videoData
+          });
+          break;
+        case 'pause':
+          dataLayer.push({
+            event: 'video_pause',
+            ...videoData
+          });
+          break;
+        case 'ended':
+          dataLayer.push({
+            event: 'video_complete',
+            ...videoData
+          });
+          break;
+        case 'timeupdate':
+          if (video.currentTime === video.duration) return;
+          video_percent = Math.floor((video.currentTime / video.duration) * 100);
+    
+          // Track progress thresholds only once per video instance
+          if (!video._trackedProgress) {
+            video._trackedProgress = new Set();
+          }
+          config.progressPercentage.forEach(percent => {
+            if (
+              video_percent >= percent &&
+              !video._trackedProgress.has(percent)
+            ) {
+              video._trackedProgress.add(percent);
+              dataLayer.push({
+                event: 'video_progress',
+                video_percent: percent,
+                ...videoData
+              });
+            }
+          });
+          break;
+      }
+    };
 
-
-        const handleFormStart = () => {
-        if (!formFocused) {
-            formFocused = true;
-            dataLayer.push({
-            event: 'form_start',
-            form_id: formMeta.id,
-            form_name: formMeta.name,
-            form_destination: formMeta.destination
-            });
-        }
-        };
-
-        const handleFormError = (event) => {
-        const errorFields = form.querySelectorAll('.error');
-        let errors = '';
-        
-        errorFields.forEach((errorField) => {
-            const errorFieldId = (errorField.previousElementSibling && errorField.previousElementSibling.id) || "unknown-field";
-            errors += `${errorFieldId}-`;
-        });
-
-        dataLayer.push({
-            event: 'form_error',
-            form_id: formMeta.id,
-            form_name: formMeta.name,
-            form_destination: formMeta.destination,
-            form_field: errors,
-            error_message: errorFields[0] ? errorFields[0].innerHTML : ''
-        });
-        
-        };
-
-        const handleFormSubmit = (event) => {
-        const errorFields = form.querySelectorAll('.error');
-        
-        if (errorFields.length === 0) {
-            formSubmitted = true;
-            dataLayer.push({
-            event: 'form_submit',
-            form_id: formMeta.id,
-            form_name: formMeta.name,
-            form_destination: formMeta.destination
-            });
-        } else {
-            handleFormError(event);
-        }
-        };
-
-        const handleFormAbandon = () => {
-        if (formFocused && !formSubmitted) {
-            dataLayer.push({
-            event: 'form_abandon',
-            form_id: formMeta.id,
-            form_name: formMeta.name,
-            form_destination: formMeta.destination
-            });
-        }
-        };
-        form.addEventListener('focusin', handleFormStart);
-        form.addEventListener('submit', handleFormSubmit);
-        window.addEventListener('beforeunload', handleFormAbandon);
-
-        }
+  
     
     document.addEventListener('click', handleClick);
     window.addEventListener('scroll', handleScroll, { passive: true });
+    document.querySelectorAll('video').forEach(video => {
+      config.videoEvents.forEach(evt => {
+        video.addEventListener(evt, handleVideoEvents);
+      });
+    });
     
 
     window.addEventListener("popstate", ()=> {
