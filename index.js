@@ -273,7 +273,7 @@ function startTracking(userConfig = {}) {
         var duration = Math.floor(player.getDuration());
         var videoPercent = duration ? Math.floor((currentTime / duration) * 100) : 0;
     
-        if (event.data === YT.PlayerState.PLAYING && config.youtubeEvents.includes('play')) {
+        if (event.data === YT.PlayerState.PLAYING && config.youtubeEvents.includes('ytplay')) {
           if (!player.video_started) {
             player.video_started = true;
             dataLayer.push({
@@ -289,7 +289,7 @@ function startTracking(userConfig = {}) {
           if (!player.progressInterval) {
             player.progressInterval = setInterval(() => checkProgress(player), 500);
           }
-        } else if (event.data === YT.PlayerState.PAUSED && config.youtubeEvents.includes('pause')) {
+        } else if (event.data === YT.PlayerState.PAUSED && config.youtubeEvents.includes('ytpause')) {
           player.video_playing = false;
           clearInterval(player.progressInterval);
           player.progressInterval = null;
@@ -302,7 +302,7 @@ function startTracking(userConfig = {}) {
             'video_percent': videoPercent,
             'video_provider': "youtube"
           });
-        } else if (event.data === YT.PlayerState.ENDED && config.youtubeEvents.includes('ended')) {
+        } else if (event.data === YT.PlayerState.ENDED && config.youtubeEvents.includes('ytcomplete')) {
           player.video_playing = false;
           clearInterval(player.progressInterval);
           player.progressInterval = null;
@@ -326,7 +326,7 @@ function startTracking(userConfig = {}) {
         var youtube_video_percent = Math.floor((currentTime / duration) * 100);
     
         config.ytprogressPercentage.forEach(percent => {
-          if (youtube_video_percent >= percent && !player.tracked_percent.has(percent) && config.youtubeEvents.includes('progress')) {
+          if (youtube_video_percent >= percent && !player.tracked_percent.has(percent) && config.youtubeEvents.includes('ytprogress')) {
             player.tracked_percent.add(percent);
             dataLayer.push({
               'event': "video_progress",
