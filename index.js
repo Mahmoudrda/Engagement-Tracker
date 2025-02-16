@@ -11,8 +11,11 @@ function startTracking(userConfig = {}) {
             "avi", "mov", "mp4", "mpeg", "mpg", "wmv", "midi", "mp3", 
             "wav", "wma"
           ],
-        videoEvents: ['play', 'pause', 'ended', 'timeupdate'],
+        videoEvents: ['play', 'pause', 'ended', 'progress'],
         progressPercentage: [10, 25, 50, 75, 90, 100],
+        youtube : true,
+        youtubeEvents: ['ytplay', 'ytpause', 'ytended', 'ytprogress'],
+        ytprogressPercentage: [10, 25, 50, 75, 90, 100],
         debounceTime: 100,
         ...userConfig // Override with user's config
     };
@@ -211,16 +214,141 @@ function startTracking(userConfig = {}) {
       }
     };
 
-  
+    function handelyoutube() {
+
+
+      // Load the YouTube IFrame API
+      var tag = document.createElement('script');
+      tag.type = "text/javascript";
+      tag.async = true;
+      tag.src = document.location.protocol + "//www.youtube.com/iframe_api";
+      var firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
     
-    document.addEventListener('click', handleClick);
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    document.querySelectorAll('video').forEach(video => {
-      config.videoEvents.forEach(evt => {
-        video.addEventListener(evt, handleVideoEvents);
+      // Select all YouTube iframes and update their src to enable JS API
+      var youtubeIframes = Array.from(document.querySelectorAll('iframe'))
+        .filter(iframe => iframe.src.includes('youtube'));
+        
+      youtubeIframes.forEach(iframe => {
+        if (iframe.src.indexOf('?') > -1) {
+          iframe.src += '&enablejsapi=1';
+        } else {
+          iframe.src += '?enablejsapi=1';
+        }
       });
-    });
     
+      // Store players for each iframe
+      var players = [];
+    
+      // This callback gets called once the YouTube API is ready.
+      window.onYouTubeIframeAPIReady = function() {
+        youtubeIframes.forEach(iframe => {
+          // Create a new player using the iframe element directly.
+          var player = new YT.Player(iframe, {
+            events: {
+              'onReady': onPlayerReady,
+              'onStateChange': onPlayerStateChange
+            }
+          });
+    
+          // Attach tracking variables to the player object.
+          player.video_started = false;
+          player.video_playing = false;
+          player.progressInterval = null;
+          player.tracked_percent = new Set();
+    
+          players.push(player);
+        });
+      };
+    
+      function onPlayerReady(event) {
+        console.log("Player is ready");
+      }
+    
+      function onPlayerStateChange(event) {
+        var player = event.target;
+        var videoData = player.getVideoData();
+        var videoTitle = videoData.title;
+        var currentTime = Math.floor(player.getCurrentTime());
+        var duration = Math.floor(player.getDuration());
+        var videoPercent = duration ? Math.floor((currentTime / duration) * 100) : 0;
+    
+        if (event.data === YT.PlayerState.PLAYING && config.youtubeEvents.includes('play')) {
+          if (!player.video_started) {
+            player.video_started = true;
+            dataLayer.push({
+              'event': "video_start",
+              'video_title': videoTitle,
+              'video_url': player.getVideoUrl(),
+              'video_current_time': currentTime,
+              'video_duration': duration,
+              'video_provider': "youtube"
+            });
+          }
+          player.video_playing = true;
+          if (!player.progressInterval) {
+            player.progressInterval = setInterval(() => checkProgress(player), 500);
+          }
+        } else if (event.data === YT.PlayerState.PAUSED && config.youtubeEvents.includes('pause')) {
+          player.video_playing = false;
+          clearInterval(player.progressInterval);
+          player.progressInterval = null;
+          dataLayer.push({
+            'event': "video_pause",
+            'video_title': videoTitle,
+            'video_url': player.getVideoUrl(),
+            'video_current_time': currentTime,
+            'video_duration': duration,
+            'video_percent': videoPercent,
+            'video_provider': "youtube"
+          });
+        } else if (event.data === YT.PlayerState.ENDED && config.youtubeEvents.includes('ended')) {
+          player.video_playing = false;
+          clearInterval(player.progressInterval);
+          player.progressInterval = null;
+          dataLayer.push({
+            'event': "video_complete",
+            'video_title': videoTitle,
+            'video_url': player.getVideoUrl(),
+            'video_current_time': currentTime,
+            'video_duration': duration,
+            'video_provider': "youtube"
+          });
+          console.log("ended");
+        }
+      }
+    
+      function checkProgress(player) {
+        if (!player.video_playing) return;
+        var currentTime = player.getCurrentTime();
+        var duration = player.getDuration();
+        if (!duration) return;
+        var youtube_video_percent = Math.floor((currentTime / duration) * 100);
+    
+        config.ytprogressPercentage.forEach(percent => {
+          if (youtube_video_percent >= percent && !player.tracked_percent.has(percent) && config.youtubeEvents.includes('progress')) {
+            player.tracked_percent.add(percent);
+            dataLayer.push({
+              'event': "video_progress",
+              'video_title': player.getVideoData().title,
+              'video_url': player.getVideoUrl(),
+              'video_current_time': Math.floor(currentTime),
+              'video_duration': Math.floor(duration),
+              'video_percent': youtube_video_percent,
+              'video_provider': "youtube"
+            });
+          }
+        });
+      }
+    }
+    
+    
+
+  
+    // handel click event
+    document.addEventListener('click', handleClick);
+    // handle scroll event
+    window.addEventListener('scroll', handleScroll, { passive: true });
 
     window.addEventListener("popstate", ()=> {
         resetScrollTracker();
@@ -246,6 +374,36 @@ function startTracking(userConfig = {}) {
           handleScroll();
         };
       }
+      // handle HTML5 video events
+    document.querySelectorAll('video').forEach(video => {
+      config.videoEvents.forEach(evt => {
+        video.addEventListener(evt, handleVideoEvents);
+      });
+    });
+    const observer = new MutationObserver(mutations => {
+      mutations.forEach(mutation => {
+        mutation.addedNodes.forEach(node => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            if (node.tagName.toLowerCase() === 'video') {
+              config.videoEvents.forEach(evt => {
+                node.addEventListener(evt, handleVideoEvents);
+              });
+            } else {
+              node.querySelectorAll('video').forEach(video => {
+                config.videoEvents.forEach(evt => {
+                  video.addEventListener(evt, handleVideoEvents);
+                });
+              });
+            }
+          }
+        });
+      });
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    // handle youtube video events
+    if (config.youtube) {
+      handelyoutube();
+    }
 
     console.log('Tracking started with config:', config);
 }
