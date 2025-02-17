@@ -1,6 +1,6 @@
 {
   "name": "engagement_tracker",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "This package tracks user interactions on a webpage by monitoring DOM events. It captures clicks, scrolls, form submissions, and more, providing real-time analytics and insights into user behavior",
   "main": "template.js",
   "scripts": {
