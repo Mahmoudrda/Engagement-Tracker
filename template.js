@@ -1,3 +1,26 @@
+/*
+* Author: Mahmoud Reda
+* Email:  mahmoud.elrous.acc@gmail.com
+* GitHub: https://github.com/Mahmoudrda
+*
+*
+*
+* Description:
+  * This is the script that gets injected into the page using Google Tag Manager custom templates.
+  * The script is responsible for tracking various events and data on the page.
+  * It uses the dataLayer to push events to the GTM dataLayer.
+*
+*
+* The script is written in JavaScript and is compatible with all modern browsers.
+*
+*
+*
+* License:
+  *Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *     http://www.apache.org/licenses/LICENSE-2.0
+*/
 function startTracking(userConfig = {}) {
     // Merge default config with user config
     const config = {
