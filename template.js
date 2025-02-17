@@ -431,10 +431,14 @@ function startTracking(userConfig = {}) {
         });
       });
     });
-  }
     observer.observe(document.body, { childList: true, subtree: true });
+  }
+    
     // handle youtube video events
-    handelyoutube();
+    if (config.youtubeEvents.length > 0) {
+      handelyoutube();
+    }
+    
 
     console.log('Tracking started with config:', config);
 }
