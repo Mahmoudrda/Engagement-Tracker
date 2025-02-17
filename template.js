@@ -187,7 +187,8 @@ function startTracking(userConfig = {}) {
         videoTitle: video.title || video.getAttribute('title') || video.getAttribute('data-title') || video.getAttribute('aria-label') || "no-title",
         videoUrl: video.src || video.currentSrc,
         videoDuration: Math.floor(video.duration),
-        videoCurrentTime: Math.floor(video.currentTime)
+        videoCurrentTime: Math.floor(video.currentTime),
+        videoPercent: Math.floor((video.currentTime / video.duration) * 100)
       };
     
       switch (event.type) {
@@ -305,6 +306,7 @@ function startTracking(userConfig = {}) {
               'video_url': player.getVideoUrl(),
               'video_current_time': currentTime,
               'video_duration': duration,
+              'video_percent': videoPercent,
               'video_provider': "youtube"
             });
           }
@@ -335,6 +337,7 @@ function startTracking(userConfig = {}) {
             'video_url': player.getVideoUrl(),
             'video_current_time': currentTime,
             'video_duration': duration,
+            'video_percent': 100,
             'video_provider': "youtube"
           });
           
@@ -366,10 +369,10 @@ function startTracking(userConfig = {}) {
     }
     
     
-
-  
     // handel click event
     document.addEventListener('click', handleClick);
+
+
     // handle scroll event
     window.addEventListener('scroll', handleScroll, { passive: true });
 
