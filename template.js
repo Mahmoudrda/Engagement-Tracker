@@ -225,7 +225,7 @@ function startTracking(userConfig = {}) {
       var firstScriptTag = document.getElementsByTagName('script')[0];
       firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
     
-      // Select all YouTube iframes and update their src to enable JS API
+      
       var youtubeIframes = Array.from(document.querySelectorAll('iframe'))
         .filter(iframe => iframe.src.includes('youtube'));
         
@@ -237,13 +237,13 @@ function startTracking(userConfig = {}) {
         }
       });
     
-      // Store players for each iframe
+      
       var players = [];
     
-      // This callback gets called once the YouTube API is ready.
+      
       window.onYouTubeIframeAPIReady = function() {
         youtubeIframes.forEach(iframe => {
-          // Create a new player using the iframe element directly.
+          
           var player = new YT.Player(iframe, {
             events: {
               'onReady': onPlayerReady,
@@ -251,7 +251,7 @@ function startTracking(userConfig = {}) {
             }
           });
     
-          // Attach tracking variables to the player object.
+          
           player.video_started = false;
           player.video_playing = false;
           player.progressInterval = null;
@@ -262,7 +262,7 @@ function startTracking(userConfig = {}) {
       };
     
       function onPlayerReady(event) {
-        console.log("Player is ready");
+        console.log("youtube player ready");
       }
     
       function onPlayerStateChange(event) {
@@ -314,7 +314,7 @@ function startTracking(userConfig = {}) {
             'video_duration': duration,
             'video_provider': "youtube"
           });
-          console.log("ended");
+          
         }
       }
     
@@ -401,9 +401,8 @@ function startTracking(userConfig = {}) {
     });
     observer.observe(document.body, { childList: true, subtree: true });
     // handle youtube video events
-    if (config.youtube === true) {
-      handelyoutube();
-    }
+  
+    handelyoutube();
 
     console.log('Tracking started with config:', config);
 }
