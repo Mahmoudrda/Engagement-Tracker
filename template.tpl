@@ -412,7 +412,7 @@ const templateLibrary = {
   }
 };
  
-const url = 'https://cdn.jsdelivr.net/npm/engagement_tracker@1.10.0/index.js';             
+const url = 'https://cdn.jsdelivr.net/npm/engagement_tracker@2.0.0/index.js';             
 injectScript(url, templateLibrary.init, data.gtmOnFailure);
 
 
@@ -554,7 +554,7 @@ ___WEB_PERMISSIONS___
             "listItem": [
               {
                 "type": 1,
-                "string": "https://cdn.jsdelivr.net/npm/engagement_tracker@1.10.0/index.js"
+                "string": "https://cdn.jsdelivr.net/npm/engagement_tracker@2.0.0/index.js"
               }
             ]
           }
