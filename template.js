@@ -157,6 +157,7 @@ function startTracking(userConfig = {}) {
             const percentage = maxScroll > 0 ? (currentPos / maxScroll) * 100 : 0;
             
             if (currentPos > lastPos[direction]) {
+                if (config.scrollThresholds.length > 0) {
                 config.scrollThresholds.forEach(threshold => {
                     if (percentage >= threshold && !scrollTracker[threshold][direction] ) {
                         scrollTracker[threshold][direction] = true;
@@ -167,6 +168,7 @@ function startTracking(userConfig = {}) {
                     }
                 });
             }
+          }
             lastPos[direction] = currentPos;        
             
             if (direction === 'vertical') {
@@ -362,6 +364,7 @@ function startTracking(userConfig = {}) {
               'video_duration': Math.floor(duration),
               'video_percent': youtube_video_percent,
               'video_provider': "youtube"
+
             });
           }
         });
@@ -401,11 +404,14 @@ function startTracking(userConfig = {}) {
         };
       }
       // handle HTML5 video events
+    if (config.videoEvents.length > 0) {
     document.querySelectorAll('video').forEach(video => {
       config.videoEvents.forEach(evt => {
         video.addEventListener(evt, handleVideoEvents);
       });
     });
+  }
+    if (config.videoEvents.length > 0) {
     const observer = new MutationObserver(mutations => {
       mutations.forEach(mutation => {
         mutation.addedNodes.forEach(node => {
@@ -425,10 +431,12 @@ function startTracking(userConfig = {}) {
         });
       });
     });
+  }
     observer.observe(document.body, { childList: true, subtree: true });
     // handle youtube video events
-  
+  if (config.youtubeEvents.length > 0) {
     handelyoutube();
+  }
 
     console.log('Tracking started with config:', config);
 }
